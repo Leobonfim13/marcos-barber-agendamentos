@@ -1,144 +1,78 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Agendamento - Marco's Barber</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            max-width: 500px; 
-            margin: 0 auto; 
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .horario { 
-            display: inline-block; 
-            margin: 5px; 
-            padding: 10px 15px; 
-            background: #000; 
-            color: white; 
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        .horario:hover { background: #FF0000; }
-        #formulario { 
-            display: none; 
-            margin-top: 20px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        input, button {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            background: #000;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #FF0000;
-        }
-    </style>
-</head>
-<body>
-    <h1>Agende seu horário</h1>
-    <div id="info-data"></div>
-    <div id="horarios-disponiveis"></div>
+// URL da sua API do Google Apps Script (https://script.google.com/macros/s/AKfycbww-VqCr1loG2gHV38zNL-7ZO1CNICTPZ7OsCaaHG904ZUdpup-g7xfEROtBzxN6hg/exec)
+const API_URL = 'https://script.google.com/macros/s/AKfycbww-VqCr1loG2gHV38zNL-7ZO1CNICTPZ7OsCaaHG904ZUdpup-g7xfEROtBzxN6hg/exec';
+
+// Pega a data da URL
+const urlParams = new URLSearchParams(window.location.search);
+const data = urlParams.get('data');
+document.getElementById('info-data').innerHTML = `<h2>Data: ${data}</h2>`;
+
+// Horários disponíveis (simulação - pode substituir por API depois)
+const horariosDisponiveis = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00"];
+let horarioSelecionado = null;
+
+// Mostra os horários
+const container = document.getElementById("horarios-disponiveis");
+horariosDisponiveis.forEach(horario => {
+    const botao = document.createElement("div");
+    botao.className = "horario";
+    botao.textContent = horario;
+    botao.onclick = () => {
+        horarioSelecionado = horario;
+        document.getElementById("formulario").style.display = 'block';
+        container.innerHTML = `<p>Horário selecionado: <strong>${horario}</strong></p>`;
+    };
+    container.appendChild(botao);
+});
+
+// Função para enviar o agendamento
+async function enviarAgendamento() {
+    const nome = document.getElementById('nome').value.trim();
+    const telefone = document.getElementById('telefone').value.trim();
     
-    <div id="formulario">
-        <h3>Seus dados:</h3>
-        <input type="text" id="nome" placeholder="Seu nome completo" required>
-        <input type="tel" id="telefone" placeholder="WhatsApp (com DDD)" required>
-        <button id="confirmar">Confirmar Agendamento</button>
-    </div>
+    if (!nome || !telefone || !horarioSelecionado) {
+        alert("Por favor, preencha todos os campos!");
+        return;
+    }
 
-    <script>
-        // URL da sua API do Google Apps Script (SUSTITUA pela SUA URL)
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzMV-MCPqt0smrQM_6jKLQr5Kr62JYfSrA1lpuaDNvvrxbgrwBiacL8Kd9SQWF3fr6k/exec';
+    try {
+        const params = new URLSearchParams();
+        params.append('data', data);
+        params.append('horario', horarioSelecionado);
+        params.append('cliente', nome);
+        params.append('telefone', telefone);
         
-        // Pega a data da URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const data = urlParams.get('data');
-        document.getElementById('info-data').innerHTML = `<h2>Data: ${data}</h2>`;
-        
-        // Horários disponíveis (simulação - pode substituir por API depois)
-        const horariosDisponiveis = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00"];
-        let horarioSelecionado = null;
-        
-        // Mostra os horários
-        const container = document.getElementById("horarios-disponiveis");
-        horariosDisponiveis.forEach(horario => {
-            const botao = document.createElement("div");
-            botao.className = "horario";
-            botao.textContent = horario;
-            botao.onclick = () => {
-                horarioSelecionado = horario;
-                document.getElementById("formulario").style.display = 'block';
-                container.innerHTML = `<p>Horário selecionado: <strong>${horario}</strong></p>`;
-            };
-            container.appendChild(botao);
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: params,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
         });
         
-        // Função para enviar o agendamento
-        async function enviarAgendamento() {
-            const nome = document.getElementById('nome').value.trim();
-            const telefone = document.getElementById('telefone').value.trim();
-            
-            if (!nome || !telefone || !horarioSelecionado) {
-                alert("Por favor, preencha todos os campos!");
-                return;
+        if (response.ok) {
+            const resultado = await response.json();
+            if (resultado.success) {
+                alert(`✅ Agendamento confirmado!\n\n${nome}, seu horário é:\n${data} às ${horarioSelecionado}`);
+                document.getElementById('nome').value = '';
+                document.getElementById('telefone').value = '';
+            } else {
+                alert(`❌ Erro: ${resultado.error || "Falha ao agendar"}`);
             }
-
-            try {
-                // Usando FormData para evitar problemas de CORS
-                const formData = new FormData();
-                formData.append('data', data);
-                formData.append('horario', horarioSelecionado);
-                formData.append('cliente', nome);
-                formData.append('telefone', telefone);
-                
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                // Verifica se a requisição foi bem-sucedida
-                if (response.ok) {
-                    const resultado = await response.json();
-                    if (resultado.success) {
-                        alert(`✅ Agendamento confirmado!\n\n${nome}, seu horário é:\n${data} às ${horarioSelecionado}`);
-                        // Limpa os campos
-                        document.getElementById('nome').value = '';
-                        document.getElementById('telefone').value = '';
-                    } else {
-                        alert(`❌ Erro: ${resultado.error || "Falha ao agendar"}`);
-                    }
-                } else {
-                    throw new Error('Falha na rede');
-                }
-            } catch (error) {
-                console.error("Erro:", error);
-                alert("⚠️ Erro de conexão. Tente novamente mais tarde.");
-            }
+        } else {
+            throw new Error('Falha na rede');
         }
+    } catch (error) {
+        console.error("Erro:", error);
+        alert("⚠️ Erro de conexão. Tente novamente mais tarde.");
+    }
+}
 
-        // Configura o botão de confirmação
-        document.getElementById("confirmar").addEventListener("click", enviarAgendamento);
-        
-        // Permite enviar com Enter
-        document.getElementById("telefone").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                enviarAgendamento();
-            }
-        });
-    </script>
-</body>
-</html>
+// Configura o botão de confirmação
+document.getElementById("confirmar").addEventListener("click", enviarAgendamento);
+
+// Permite enviar com Enter
+document.getElementById("telefone").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        enviarAgendamento();
+    }
+});
