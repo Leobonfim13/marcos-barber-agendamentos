@@ -7,8 +7,8 @@
             font-family: Arial, sans-serif; 
             max-width: 500px; 
             margin: 0 auto; 
-            padding: 20px; 
-            background-color: #f5f5f5;
+            padding: 20px;
+            background: #f5f5f5;
         }
         .horario { 
             display: inline-block; 
@@ -20,9 +20,7 @@
             border-radius: 5px;
             transition: background 0.3s;
         }
-        .horario:hover { 
-            background: #FF0000; 
-        }
+        .horario:hover { background: #FF0000; }
         #formulario { 
             display: none; 
             margin-top: 20px;
@@ -40,14 +38,13 @@
             border-radius: 4px;
         }
         button {
-            background-color: #000;
+            background: #000;
             color: white;
-            border: none;
-            cursor: pointer;
             font-weight: bold;
+            cursor: pointer;
         }
         button:hover {
-            background-color: #FF0000;
+            background: #FF0000;
         }
     </style>
 </head>
@@ -64,21 +61,19 @@
     </div>
 
     <script>
-        // URL da sua API do Google Apps Script
+        // URL da sua API do Google Apps Script (SUSTITUA pela SUA URL)
         const API_URL = 'https://script.google.com/macros/s/AKfycbzMV-MCPqt0smrQM_6jKLQr5Kr62JYfSrA1lpuaDNvvrxbgrwBiacL8Kd9SQWF3fr6k/exec';
         
-        // Pega a data da URL (ex: ?data=15/08/2023)
+        // Pega a data da URL
         const urlParams = new URLSearchParams(window.location.search);
         const data = urlParams.get('data');
-        
-        // Mostra a data selecionada
         document.getElementById('info-data').innerHTML = `<h2>Data: ${data}</h2>`;
         
-        // Simulação de horários disponíveis (você pode substituir por uma chamada real à API)
+        // Horários disponíveis (simulação - pode substituir por API depois)
         const horariosDisponiveis = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00"];
         let horarioSelecionado = null;
         
-        // Mostra os horários disponíveis
+        // Mostra os horários
         const container = document.getElementById("horarios-disponiveis");
         horariosDisponiveis.forEach(horario => {
             const botao = document.createElement("div");
@@ -103,39 +98,42 @@
             }
 
             try {
+                // Usando FormData para evitar problemas de CORS
+                const formData = new FormData();
+                formData.append('data', data);
+                formData.append('horario', horarioSelecionado);
+                formData.append('cliente', nome);
+                formData.append('telefone', telefone);
+                
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        data: data,
-                        horario: horarioSelecionado,
-                        cliente: nome,
-                        telefone: telefone
-                    })
+                    body: formData
                 });
                 
-                const resultado = await response.json();
-                
-                if (resultado.success) {
-                    alert(`✅ Agendamento confirmado!\n\n${nome}, seu horário é:\n${data} às ${horarioSelecionado}`);
-                    // Limpa os campos após agendamento
-                    document.getElementById('nome').value = '';
-                    document.getElementById('telefone').value = '';
+                // Verifica se a requisição foi bem-sucedida
+                if (response.ok) {
+                    const resultado = await response.json();
+                    if (resultado.success) {
+                        alert(`✅ Agendamento confirmado!\n\n${nome}, seu horário é:\n${data} às ${horarioSelecionado}`);
+                        // Limpa os campos
+                        document.getElementById('nome').value = '';
+                        document.getElementById('telefone').value = '';
+                    } else {
+                        alert(`❌ Erro: ${resultado.error || "Falha ao agendar"}`);
+                    }
                 } else {
-                    alert("❌ Erro ao agendar. Tente novamente.");
+                    throw new Error('Falha na rede');
                 }
             } catch (error) {
                 console.error("Erro:", error);
-                alert("⚠️ Erro de conexão. Por favor, tente novamente mais tarde.");
+                alert("⚠️ Erro de conexão. Tente novamente mais tarde.");
             }
         }
 
         // Configura o botão de confirmação
         document.getElementById("confirmar").addEventListener("click", enviarAgendamento);
         
-        // Permite enviar também com Enter
+        // Permite enviar com Enter
         document.getElementById("telefone").addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
                 enviarAgendamento();
