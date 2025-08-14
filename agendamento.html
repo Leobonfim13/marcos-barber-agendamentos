@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agendamento - Marco's Barber</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
+        .horario { 
+            display: inline-block; 
+            margin: 5px; 
+            padding: 10px 15px; 
+            background: #000; 
+            color: white; 
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .horario:hover { background: #FF0000; }
+        #formulario { display: none; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Agende seu horário</h1>
+    <div id="info-data"></div>
+    <div id="horarios-disponiveis"></div>
+    
+    <div id="formulario">
+        <h3>Seus dados:</h3>
+        <input type="text" id="nome" placeholder="Seu nome" required><br><br>
+        <input type="tel" id="telefone" placeholder="WhatsApp" required><br><br>
+        <button id="confirmar">Confirmar Agendamento</button>
+    </div>
+
+    <script>
+        // Pega a data da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const data = urlParams.get('data');
+        document.getElementById('info-data').innerHTML = `<h2>Data: ${data}</h2>`;
+        
+        // Simulação de horários disponíveis (substitua por chamada real à API)
+        const horariosDisponiveis = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00"];
+        let horarioSelecionado = null;
+        
+        // Mostra os horários
+        const container = document.getElementById("horarios-disponiveis");
+        horariosDisponiveis.forEach(horario => {
+            const botao = document.createElement("div");
+            botao.className = "horario";
+            botao.textContent = horario;
+            botao.onclick = () => {
+                horarioSelecionado = horario;
+                document.getElementById("formulario").style.display = 'block';
+                container.innerHTML = `<p>Horário selecionado: <strong>${horario}</strong></p>`;
+            };
+            container.appendChild(botao);
+        });
+        
+        // Envia o agendamento
+        document.getElementById("confirmar").onclick = async () => {
+            const nome = document.getElementById('nome').value;
+            const telefone = document.getElementById('telefone').value;
+            
+            if (nome && telefone && horarioSelecionado) {
+                try {
+                    // Substitua pela URL da sua API
+                    const response = await fetch('https://suaapi.com/agendar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            data,
+                            horario: horarioSelecionado,
+                            cliente: nome,
+                            telefone
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(`✅ Agendado! ${nome}, seu horário é dia ${data} às ${horarioSelecionado}`);
+                    } else {
+                        alert("Erro ao agendar. Tente novamente.");
+                    }
+                } catch (error) {
+                    alert("Erro de conexão. Verifique sua internet.");
+                }
+            } else {
+                alert("Preencha todos os campos!");
+            }
+        };
+    </script>
+</body>
+</html>
