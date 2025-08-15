@@ -1,0 +1,40 @@
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMV-MCPqt0smrQM_6jKLQr5Kr62JYfSrA1lpuaDNvvrxbgrwBiacL8Kd9SQWF3fr6k/exec';
+
+async function enviarAgendamento() {
+    const nome = document.getElementById('nome').value.trim();
+    const telefone = document.getElementById('telefone').value.trim();
+    
+    if (!nome || !telefone || !horarioSelecionado) {
+        alert("Por favor, preencha todos os campos!");
+        return;
+    }
+
+    try {
+        const params = new URLSearchParams();
+        params.append('data', data);
+        params.append('horario', horarioSelecionado);
+        params.append('cliente', nome);
+        params.append('telefone', telefone);
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: params,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+        
+        const resultado = await response.json();
+        
+        if (resultado.success) {
+            alert(`✅ Agendamento confirmado!\n\n${nome}, seu horário é:\n${data} às ${horarioSelecionado}`);
+            document.getElementById('nome').value = '';
+            document.getElementById('telefone').value = '';
+        } else {
+            alert(`❌ Erro: ${resultado.error || "Falha ao agendar"}`);
+        }
+    } catch (error) {
+        console.error("Erro:", error);
+        alert("⚠️ Erro de conexão. Tente novamente mais tarde.");
+    }
+}
