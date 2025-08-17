@@ -1,0 +1,114 @@
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMV-MCPqt0smrQM_6jKLQr5Kr62JYfSrA1lpuaDNvvrxbgrwBiacL8Kd9SQWF3fr6k/exec';
+
+// Variáveis globais
+let data, horarioSelecionado;
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+  // Pega a data da URL
+  const urlParams = new URLSearchParams(window.location.search);
+  data = urlParams.get('data');
+  
+  if (!data) {
+    document.getElementById('info-data').innerHTML = 
+      '<h2>Data não especificada</h2><p>Acesse pelo link de agendamento</p>';
+    return;
+  }
+  
+  document.getElementById('info-data').innerHTML = `<h2>Agendamento para: ${data}</h2>`;
+  carregarHorariosDisponiveis();
+});
+
+async function carregarHorariosDisponiveis() {
+  try {
+    const response = await fetch(`${API_URL}?acao=listar&data=${data}`);
+    
+    if (!response.ok) {
+      throw new Error('Erro ao carregar horários');
+    }
+    
+    const agendamentos = await response.json();
+    const horariosOcupados = agendamentos
+      .filter(a => a.data === data)
+      .map(a => a.horario);
+    
+    const todosHorarios = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00"];
+    const horariosDisponiveis = todosHorarios.filter(
+      h => !horariosOcupados.includes(h)
+    );
+    
+    mostrarHorarios(horariosDisponiveis);
+  } catch (error) {
+    console.error("Erro:", error);
+    mostrarHorarios(["10:00", "11:00", "12:00", "14:00", "15:00", "16:00"]); // Fallback
+  }
+}
+
+function mostrarHorarios(horarios) {
+  const container = document.getElementById("horarios-disponiveis");
+  container.innerHTML = '';
+  
+  horarios.forEach(horario => {
+    const botao = document.createElement("div");
+    botao.className = "horario";
+    botao.textContent = horario;
+    botao.onclick = () => selecionarHorario(horario);
+    container.appendChild(botao);
+  });
+}
+
+function selecionarHorario(horario) {
+  horarioSelecionado = horario;
+  document.getElementById("formulario").style.display = 'block';
+  document.getElementById("horarios-disponiveis").innerHTML = 
+    `<p>Horário selecionado: <strong>${horario}</strong></p>`;
+}
+
+async function enviarAgendamento() {
+  const nome = document.getElementById('nome').value.trim();
+  const telefone = document.getElementById('telefone').value.trim();
+  
+  if (!nome || !telefone || !horarioSelecionado) {
+    alert("Por favor, preencha todos os campos!");
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('data', data);
+    params.append('horario', horarioSelecionado);
+    params.append('cliente', nome);
+    params.append('telefone', telefone);
+    
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: params,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    
+    const resultado = await response.json();
+    
+    if (!resultado.success) {
+      throw new Error(resultado.error || "Falha no agendamento");
+    }
+    
+    alert(`✅ Agendamento confirmado!\n\n${nome}, seu horário é:\n${data} às ${horarioSelecionado}`);
+    document.getElementById('nome').value = '';
+    document.getElementById('telefone').value = '';
+    
+    // Atualiza a lista de horários
+    carregarHorariosDisponiveis();
+    
+  } catch (error) {
+    console.error("Erro detalhado:", error);
+    alert(`❌ Erro: ${error.message}`);
+  }
+}
+
+// Event Listeners
+document.getElementById("confirmar").addEventListener("click", enviarAgendamento);
+document.getElementById("telefone").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") enviarAgendamento();
+});
